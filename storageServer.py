@@ -1,4 +1,5 @@
 import os
+import shutil
 from socket import *
 import threading
 import sys
@@ -34,40 +35,85 @@ class StorageServer:
         splittedRequest = request.split(':')
         userId, command = splittedRequest[0], splittedRequest[1]
         userBasePath = self.get_user_base_path(userId)
+
         match command:
             case 'ls':
                 response = self.list_directory_structure(userBasePath)
             case 'create':
-                pass
+                type, path = splittedRequest[2], splittedRequest[3]
+                self.create_file(type, os.path.join(userBasePath, path))
             case 'write':
-                pass
+                path, data = splittedRequest[2], splittedRequest[3]
+                self.write_file(os.path.join(userBasePath, path), data)
             case 'read':
-                pass
+                path = splittedRequest[2]
+                self.read_file(os.path.join(userBasePath, path))
             case 'delete':
-                pass
+                path = splittedRequest[2]
+                self.delete_file(os.path.join(userBasePath, path))
             case 'rename':
-                pass
+                old_path, new_path = splittedRequest[2], splittedRequest[3]
+                self.rename_file(os.path.join(userBasePath, old_path), os.path.join(userBasePath, new_path))
             case other:
                 response = 'invalid Request'
         client_socket.send(response.encode())
         client_socket.close()
+
+
+    def create_file(self, type, path):
+        # Create directory
+        if type == 'dir':
+            try:
+                os.makedirs(path)
+                print("Folder %s created!" % path)
+            except FileExistsError:
+                print("Folder %s already exists" % path)
+
+        # Create file
+        elif type == 'file':
+            try:
+                file = open(path, "a")   # Trying to create a new file or open one
+                file.close()
+            except:
+                print('Error creating file')
+
+    def write_file(self, path, data):
+            try:
+                file = open(path, "a")
+                file.write(data)
+                file.close()
+            except:
+                print('Error writing to file')
+
+    def read_file(self, path):
+        try:
+            file = open(path, "r")   # Trying to create a new file or open one
+            file.close()
+        except:
+            print('Error creating file')
+        content = file.read()
+
+        print(content)
+
+    def delete_file(self, path):
+        if os.path.isfile(path):
+            os.remove(path)
+        elif os.path.isdir(path):
+            shutil.rmtree(path)
+        else:
+            print('No such file or directory found')
+
+    def rename_file(self, old_name, new_name):    
+        try:
+            os.rename(old_name, new_name)
+        except:
+            print('Error in renaming file')
 
     def get_user_base_path(self, userId):
         userBasePath = f'{self.root_dir}\\{userId}_DIR'
         if not os.path.exists(userBasePath):
             os.mkdir(userBasePath)
         return userBasePath
-
-    def get_file(self, userBasePath, pathToFile):
-        try:
-            with open(os.path.join(userBasePath, pathToFile), 'rb') as f:
-                return f.read().decode()
-        except FileNotFoundError:
-            return None
-
-    def put_file(self, userBasePath, pathToFile,  data):
-        with open(os.path.join(userBasePath, pathToFile), 'wb') as f:
-            f.write(data.encode())
 
     def list_directory_structure(self, path):
         outputString = ''
