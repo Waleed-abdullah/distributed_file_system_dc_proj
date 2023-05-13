@@ -12,19 +12,23 @@ def simple_hash(s, range_size):
 def logger(filename, message):
     if os.path.exists(filename):
         logFile = open(filename, "a")
+        logFile.write(message)
     else:
         with open(filename, "w") as logFile:
             logFile.write("Server Log")
-    logFile.write(message)
+            logFile.write(message)
     logFile.close()
 
 
-def berkeley(storageNodeClocks):
-    masterClock = time.time()
-    totalTime = sum(storageNodeClocks) + masterClock
-    totalClocks = len(storageNodeClocks) + 1.0
-    averageTime = totalTime / totalClocks
-    return averageTime
+def berkeley(nodeClocks):
+    differences = []
+    masterClock = nodeClocks[-1]
+    for clock in nodeClocks:
+        differences.append(clock - masterClock)
+    totalTimeDifference = sum(differences)
+    averageTimeDifference = totalTimeDifference / len(nodeClocks)
+    synchronizedTime = masterClock + averageTimeDifference
+    return synchronizedTime
 
 
 def compute_formatted_time(offset):

@@ -16,7 +16,7 @@ class FileServer:
 
     def start(self):
         try:
-            self.synchronize_storage_nodes()
+            self.synchronize_nodes()
             while True:
                 conn, addr = self.socket.accept()
                 print(f"Connected by {addr}")
@@ -98,29 +98,30 @@ class FileServer:
             response = s.recv(2048).decode()
         return response
 
-    def synchronize_storage_nodes(self):
-        storageNodeClocks = []
+    def synchronize_nodes(self):
+        nodeClocks = []
         for storageNode in self.storageNodes:
             storageNodeIp, storageNodePort = storageNode
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect((storageNodeIp, storageNodePort))
                 s.sendall("synchronize".encode())
                 nodeClock = s.recv(2048).decode()
-                storageNodeClocks.append(float(nodeClock))
+                nodeClocks.append(float(nodeClock))
                 s.close()
 
-        synchronizedTime = berkeley(storageNodeClocks)
+        masterNodeClock = time.time()
+        nodeClocks.append(masterNodeClock)
+        synchronizedTime = berkeley(nodeClocks)
 
         for index, storageNode in enumerate(self.storageNodes):
             storageNodeIp, storageNodePort = storageNode
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect((storageNodeIp, storageNodePort))
-                synchronizedTimeOffset = synchronizedTime - \
-                    storageNodeClocks[index]
+                synchronizedTimeOffset = synchronizedTime - nodeClocks[index]
                 s.sendall(str(synchronizedTimeOffset).encode())
                 s.close()
 
-        self.synchronizedClockOffset = synchronizedTimeOffset
+        self.synchronizedClockOffset = synchronizedTime - masterNodeClock
 
 
 if __name__ == '__main__':
