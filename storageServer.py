@@ -79,8 +79,9 @@ class StorageServer:
 
 
 if __name__ == '__main__':
-    if len(sys.argv < 3):
+    if len(sys.argv) < 3:
         print('Enter rootDirForServer and portNo.')
         exit()
     rootDir, portNo = sys.argv[1], int(sys.argv[2])
-    storageServer = StorageServer(rootDir, portNo)
+    storageServer = StorageServer(rootDir, port=portNo)
+    storageServer.start()
