@@ -1,6 +1,7 @@
 import socket
 import threading
-from lib import simple_hash
+import time
+from lib import simple_hash, logger, berkeley, compute_formatted_time
 
 
 class FileServer:
@@ -8,13 +9,14 @@ class FileServer:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.bind(('', port))
         self.socket.listen(5)
-        self.log = None  # to be used for logs
+        self.log = "centralServerLog.txt"
         self.storageNodes = [('127.0.0.1', 8000)]
+        self.synchronizedClockOffset = None
         print(f"Server listening on port {port}")
 
     def start(self):
-
         try:
+            self.synchronize_nodes()
             while True:
                 conn, addr = self.socket.accept()
                 print(f"Connected by {addr}")
@@ -31,7 +33,7 @@ class FileServer:
             conn.sendall('Enter userId: '.encode())
             userId = conn.recv(1024).decode()
             userStorageNode = simple_hash(userId, len(self.storageNodes))
-            conn.sendall(f'Thank you for loggin in user {userId}'.encode())
+            conn.sendall(f'Thank you for logging in user {userId}'.encode())
             while True:
                 data = conn.recv(1024).decode()
                 if not data or data == 'exit':
@@ -48,6 +50,11 @@ class FileServer:
         # Parse the client request and return the response
         splittedRequest = data.split()
         command = splittedRequest[0]
+
+        # log request to the server
+        logMessage = f"\n{userId} : {compute_formatted_time(self.synchronizedClockOffset)} : {command}"
+        logger(self.log, logMessage)
+
         match command:
             case 'ls':
                 if len(splittedRequest) != 1:
@@ -84,12 +91,37 @@ class FileServer:
                 return 'invalid request'
 
     def request_storage_node(self, message, userStorageNode):
-        storageNodeIp, storageNodePort = self.storageNodes(userStorageNode)
+        storageNodeIp, storageNodePort = self.storageNodes[userStorageNode]
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((storageNodeIp, storageNodePort))
             s.sendall(message.encode())
             response = s.recv(2048).decode()
         return response
+
+    def synchronize_nodes(self):
+        nodeClocks = []
+        for storageNode in self.storageNodes:
+            storageNodeIp, storageNodePort = storageNode
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((storageNodeIp, storageNodePort))
+                s.sendall("synchronize".encode())
+                nodeClock = s.recv(2048).decode()
+                nodeClocks.append(float(nodeClock))
+                s.close()
+
+        masterNodeClock = time.time()
+        nodeClocks.append(masterNodeClock)
+        synchronizedTime = berkeley(nodeClocks)
+
+        for index, storageNode in enumerate(self.storageNodes):
+            storageNodeIp, storageNodePort = storageNode
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((storageNodeIp, storageNodePort))
+                synchronizedTimeOffset = synchronizedTime - nodeClocks[index]
+                s.sendall(str(synchronizedTimeOffset).encode())
+                s.close()
+
+        self.synchronizedClockOffset = synchronizedTime - masterNodeClock
 
 
 if __name__ == '__main__':
