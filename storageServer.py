@@ -2,6 +2,8 @@ import os
 from socket import *
 import threading
 import sys
+import time
+from lib import logger, compute_formatted_time
 
 
 class StorageServer:
@@ -9,6 +11,8 @@ class StorageServer:
         self.root_dir = root_dir
         self.host = host
         self.port = port
+        self.synchronizedClockOffset = None
+        self.log = "storageServerLog.txt"
         self.server_socket = socket(AF_INET, SOCK_STREAM)
         self.server_socket.bind((self.host, self.port))
 
@@ -16,10 +20,27 @@ class StorageServer:
         if not os.path.exists(self.root_dir):
             os.mkdir(self.root_dir)
 
+    def synchronize_clock(self):
+        socket, _ = self.server_socket.accept()
+        request = socket.recv(1024).decode()
+        if request == "synchronize":
+            current_time = time.time()
+            socket.send(str(current_time).encode())
+            socket.close()
+
+            # we accept a new connection here as previous
+            # socket gets closed on the server
+            socket, _ = self.server_socket.accept()
+            clockOffset = socket.recv(1024).decode()
+            self.synchronizedClockOffset = float(clockOffset)
+            socket.close()
+
     def start(self):
         self.create_root_dir()
         self.server_socket.listen(5)
         print(f'Storage server started on {self.host}:{self.port}')
+
+        self.synchronize_clock()
 
         while True:
             client_socket, client_address = self.server_socket.accept()
@@ -34,6 +55,11 @@ class StorageServer:
         splittedRequest = request.split(':')
         userId, command = splittedRequest[0], splittedRequest[1]
         userBasePath = self.get_user_base_path(userId)
+
+        # log request to the server
+        logMessage = f"\n{userId} : {compute_formatted_time(self.synchronizedClockOffset)} : {command} : {userBasePath}"
+        logger(self.log, logMessage)
+
         match command:
             case 'ls':
                 response = self.list_directory_structure(userBasePath)
@@ -76,6 +102,7 @@ class StorageServer:
                 outputString += os.path.join(root, name) + '\n'
             for name in dirs:
                 outputString += os.path.join(root, name) + '\n'
+        return outputString
 
 
 if __name__ == '__main__':
