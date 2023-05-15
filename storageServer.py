@@ -66,59 +66,64 @@ class StorageServer:
                 response = self.list_directory_structure(userBasePath)
             case 'create':
                 type, path = splittedRequest[2], splittedRequest[3]
-                self.create_file(type, os.path.join(userBasePath, path))
+                response = self.create_file(
+                    type, os.path.join(userBasePath, path))
             case 'write':
                 path, data = splittedRequest[2], splittedRequest[3]
-                self.write_file(os.path.join(userBasePath, path), data)
+                response = self.write_file(
+                    os.path.join(userBasePath, path), data)
             case 'read':
                 path = splittedRequest[2]
-                self.read_file(os.path.join(userBasePath, path))
+                response = self.read_file(os.path.join(userBasePath, path))
             case 'delete':
                 path = splittedRequest[2]
-                self.delete_file(os.path.join(userBasePath, path))
+                response = self.delete_file(os.path.join(userBasePath, path))
             case 'rename':
                 old_path, new_path = splittedRequest[2], splittedRequest[3]
-                self.rename_file(os.path.join(userBasePath, old_path), os.path.join(userBasePath, new_path))
+                self.rename_file(os.path.join(userBasePath, old_path),
+                                 os.path.join(userBasePath, new_path))
             case other:
                 response = 'invalid Request'
         client_socket.send(response.encode())
         client_socket.close()
-
 
     def create_file(self, type, path):
         # Create directory
         if type == 'dir':
             try:
                 os.makedirs(path)
-                print("Folder %s created!" % path)
+                return f"Folder {path} created!"
             except FileExistsError:
-                print("Folder %s already exists" % path)
+                return f"Folder {path} already exists"
 
         # Create file
         elif type == 'file':
             try:
-                file = open(path, "a")   # Trying to create a new file or open one
+                # Trying to create a new file or open one
+                file = open(path, "a")
                 file.close()
+                return f"File {path} created successfully"
             except:
-                print('Error creating file')
+                return "Error creating file"
 
     def write_file(self, path, data):
-            try:
-                file = open(path, "a")
-                file.write(data)
-                file.close()
-            except:
-                print('Error writing to file')
+        try:
+            file = open(path, "a")
+            file.write(data)
+            file.close()
+            return f"Data written to file {path}"
+        except:
+            return "Error writing to file"
 
     def read_file(self, path):
         try:
             file = open(path, "r")   # Trying to create a new file or open one
+            content = file.read()
             file.close()
         except:
-            print('Error creating file')
-        content = file.read()
+            return "Error reading file"
 
-        print(content)
+        return content
 
     def delete_file(self, path):
         if os.path.isfile(path):
@@ -126,13 +131,15 @@ class StorageServer:
         elif os.path.isdir(path):
             shutil.rmtree(path)
         else:
-            print('No such file or directory found')
+            return 'No such file or directory found'
+        return f'{path} deleted'
 
-    def rename_file(self, old_name, new_name):    
+    def rename_file(self, old_name, new_name):
         try:
             os.rename(old_name, new_name)
+            return f'{old_name} changed to {new_name}'
         except:
-            print('Error in renaming file')
+            return "Error in renaming file"
 
     def get_user_base_path(self, userId):
         userBasePath = f'{self.root_dir}\\{userId}_DIR'
@@ -143,7 +150,7 @@ class StorageServer:
     def list_directory_structure(self, path):
         outputString = ''
         for root, dirs, files in os.walk(path):
-            for name in files:
+            for name in files: 
                 outputString += os.path.join(root, name) + '\n'
             for name in dirs:
                 outputString += os.path.join(root, name) + '\n'
@@ -157,4 +164,3 @@ if __name__ == '__main__':
     rootDir, portNo = sys.argv[1], int(sys.argv[2])
     storageServer = StorageServer(rootDir, port=portNo)
     storageServer.start()
-
