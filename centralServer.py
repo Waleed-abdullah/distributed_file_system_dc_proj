@@ -7,10 +7,10 @@ from lib import simple_hash, logger, berkeley, compute_formatted_time
 class FileServer:
     def __init__(self, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.bind(('', port))
+        self.socket.bind(('10.7.53.83', port))
         self.socket.listen(5)
         self.log = "centralServerLog.txt"
-        self.storageNodes = [('127.0.0.1', 8000)]
+        self.storageNodes = [('10.7.89.44', 8000)]
         self.synchronizedClockOffset = None
         print(f"Server listening on port {port}")
 
