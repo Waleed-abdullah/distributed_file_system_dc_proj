@@ -112,6 +112,8 @@ class StorageServer:
             file.write(data)
             file.close()
             return f"Data written to file {path}"
+        except FileNotFoundError:
+            return "File or directory not found"
         except:
             return "Error writing to file"
 
@@ -120,24 +122,30 @@ class StorageServer:
             file = open(path, "r")   # Trying to create a new file or open one
             content = file.read()
             file.close()
+            return content
+        except FileNotFoundError:
+            return "File or directory not found"
         except:
             return "Error reading file"
 
-        return content
-
     def delete_file(self, path):
-        if os.path.isfile(path):
-            os.remove(path)
-        elif os.path.isdir(path):
-            shutil.rmtree(path)
-        else:
-            return 'No such file or directory found'
-        return f'{path} deleted'
+        try:
+            if os.path.isfile(path):
+                os.remove(path)
+            elif os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                return 'No such file or directory found'
+            return f'{path} deleted'
+        except FileNotFoundError:
+            return "File or directory not found"
 
     def rename_file(self, old_name, new_name):
         try:
             os.rename(old_name, new_name)
             return f'{old_name} changed to {new_name}'
+        except FileNotFoundError:
+            return "File or directory not found"
         except:
             return "Error in renaming file"
 
@@ -150,7 +158,7 @@ class StorageServer:
     def list_directory_structure(self, path):
         outputString = ''
         for root, dirs, files in os.walk(path):
-            for name in files: 
+            for name in files:
                 outputString += os.path.join(root, name) + '\n'
             for name in dirs:
                 outputString += os.path.join(root, name) + '\n'
