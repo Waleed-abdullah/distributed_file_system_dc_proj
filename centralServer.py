@@ -7,10 +7,10 @@ from lib import simple_hash, logger, berkeley, compute_formatted_time
 class FileServer:
     def __init__(self, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.bind(('10.7.53.83', port))
+        self.socket.bind(('127.0.0.1', port))
         self.socket.listen(5)
         self.log = "centralServerLog.txt"
-        self.storageNodes = [('10.7.89.44', 8000)]
+        self.storageNodes = [[('127.0.0.1', 8000), ('127.0.0.1', 8001)]]
         self.synchronizedClockOffset = None
         print(f"Server listening on port {port}")
 
@@ -59,7 +59,7 @@ class FileServer:
             case 'ls':
                 if len(splittedRequest) != 1:
                     return 'command Usage(lists the entire storage area for user): ls'
-                return self.request_storage_node(f'{userId}:ls', userStorageNode)
+                return self.request_storage_node(f'{userId}:ls', userStorageNode, needSingleServer=True)
             case 'create':
                 if len(splittedRequest) != 3:
                     return 'command Usage: create type<dir,file> path'
@@ -75,7 +75,7 @@ class FileServer:
                 if len(splittedRequest) != 2:
                     return 'command Usage: read path\\to\\file'
                 filePath = splittedRequest[1]
-                return self.request_storage_node(f'{userId}:read:{filePath}', userStorageNode)
+                return self.request_storage_node(f'{userId}:read:{filePath}', userStorageNode, needSingleServer=True)
             case 'delete':
                 if len(splittedRequest) != 2:
                     return 'command Usage: delete path\\to\\file_or_dir'
@@ -90,37 +90,46 @@ class FileServer:
             case other:
                 return 'invalid request'
 
-    def request_storage_node(self, message, userStorageNode):
-        storageNodeIp, storageNodePort = self.storageNodes[userStorageNode]
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((storageNodeIp, storageNodePort))
-            s.sendall(message.encode())
-            response = s.recv(2048).decode()
+    def request_storage_node(self, message, userStorageNode, needSingleServer=False):
+        replicatedStorageNodes = self.storageNodes[userStorageNode]
+        for storageNode in replicatedStorageNodes:
+            storageNodeIp, storageNodePort = storageNode
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.connect((storageNodeIp, storageNodePort))
+                    s.sendall(message.encode())
+                    response = s.recv(2048).decode()
+                    print('response:', response)
+                    if needSingleServer:
+                        break
+            except:
+                response = None
         return response
 
     def synchronize_nodes(self):
         nodeClocks = []
-        for storageNode in self.storageNodes:
-            storageNodeIp, storageNodePort = storageNode
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect((storageNodeIp, storageNodePort))
-                s.sendall("synchronize".encode())
-                nodeClock = s.recv(2048).decode()
-                nodeClocks.append(float(nodeClock))
-                s.close()
-
+        for replicatedStorageNodes in self.storageNodes:
+            for storageNode in replicatedStorageNodes:
+                storageNodeIp, storageNodePort = storageNode
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.connect((storageNodeIp, storageNodePort))
+                    s.sendall("synchronize".encode())
+                    nodeClock = s.recv(2048).decode()
+                    nodeClocks.append(float(nodeClock))
+                    s.close()
         masterNodeClock = time.time()
         nodeClocks.append(masterNodeClock)
         synchronizedTime = berkeley(nodeClocks)
 
-        for index, storageNode in enumerate(self.storageNodes):
-            storageNodeIp, storageNodePort = storageNode
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect((storageNodeIp, storageNodePort))
-                synchronizedTimeOffset = synchronizedTime - nodeClocks[index]
-                s.sendall(str(synchronizedTimeOffset).encode())
-                s.close()
-
+        for replicatedStorageNodes in self.storageNodes:
+            for index, storageNode in enumerate(replicatedStorageNodes):
+                storageNodeIp, storageNodePort = storageNode
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.connect((storageNodeIp, storageNodePort))
+                    synchronizedTimeOffset = synchronizedTime - \
+                        nodeClocks[index]
+                    s.sendall(str(synchronizedTimeOffset).encode())
+                    s.close()
         self.synchronizedClockOffset = synchronizedTime - masterNodeClock
 
 

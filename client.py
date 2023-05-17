@@ -1,6 +1,6 @@
 import socket
 
-host = '10.7.53.83'  # as both code is running on same pc
+host = '127.0.0.1'  # as both code is running on same pc
 port = 8080  # socket server port number
 
 
