@@ -60,7 +60,7 @@ class StorageServer:
         # log request to the server
         logMessage = f"\n{userId} : {compute_formatted_time(self.synchronizedClockOffset)} : {command} : {userBasePath}"
         logger(self.log, logMessage)
-
+        print(splittedRequest)
         match command:
             case 'ls':
                 response = self.list_directory_structure(userBasePath)
@@ -105,6 +105,8 @@ class StorageServer:
                 return f"File {path} created successfully"
             except:
                 return "Error creating file"
+        else:
+            return 'invalid type'
 
     def write_file(self, path, data):
         try:
@@ -122,7 +124,7 @@ class StorageServer:
             file = open(path, "r")   # Trying to create a new file or open one
             content = file.read()
             file.close()
-            return content
+            return content if content != '' else 'no data in file'
         except FileNotFoundError:
             return "File or directory not found"
         except:
@@ -162,7 +164,7 @@ class StorageServer:
                 outputString += os.path.join(root, name) + '\n'
             for name in dirs:
                 outputString += os.path.join(root, name) + '\n'
-        return outputString
+        return outputString if outputString != '' else 'no files or directories'
 
 
 if __name__ == '__main__':

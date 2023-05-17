@@ -13,11 +13,12 @@ def logger(filename, message):
     if os.path.exists(filename):
         logFile = open(filename, "a")
         logFile.write(message)
+        logFile.close()
+
     else:
         with open(filename, "w") as logFile:
             logFile.write("Server Log")
             logFile.write(message)
-    logFile.close()
 
 
 def berkeley(nodeClocks):

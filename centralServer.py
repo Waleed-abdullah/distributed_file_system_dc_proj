@@ -10,7 +10,7 @@ class FileServer:
         self.socket.bind(('127.0.0.1', port))
         self.socket.listen(5)
         self.log = "centralServerLog.txt"
-        self.storageNodes = [[('127.0.0.1', 8000), ('127.0.0.1', 8001)]]
+        self.storageNodes = [[('127.0.0.1', 8000)], [('127.0.0.1', 8001)]]
         self.synchronizedClockOffset = None
         print(f"Server listening on port {port}")
 
@@ -61,7 +61,7 @@ class FileServer:
                     return 'command Usage(lists the entire storage area for user): ls'
                 return self.request_storage_node(f'{userId}:ls', userStorageNode, needSingleServer=True)
             case 'create':
-                if len(splittedRequest) != 3:
+                if len(splittedRequest) != 3 or splittedRequest[1] != 'dir' and splittedRequest[1] != 'file':
                     return 'command Usage: create type<dir,file> path'
                 type, path = splittedRequest[1], splittedRequest[2]
                 return self.request_storage_node(f'{userId}:create:{type}:{path}', userStorageNode)
@@ -99,6 +99,7 @@ class FileServer:
                     s.connect((storageNodeIp, storageNodePort))
                     s.sendall(message.encode())
                     response = s.recv(2048).decode()
+                    print('response', response)
                     if needSingleServer and response:
                         break
             except:
