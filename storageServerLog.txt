@@ -5,3 +5,7 @@ Server Log
 123 : 2023-05-17 16:30:19.168 : write : storageServerDir2\123_DIR
 123 : 2023-05-17 16:30:23.336 : read : storageServerDir1\123_DIR
 123 : 2023-05-17 16:30:27.501 : ls : storageServerDir1\123_DIR
+123 : 2023-05-17 16:44:42.558 : read : storageServerDir2.py\123_DIR
+123 : 2023-05-17 16:44:54.932 : ls : storageServerDir2.py\123_DIR
+123 : 2023-05-17 16:48:01.331 : read : storageServerDir2\123_DIR
+123 : 2023-05-17 16:48:07.354 : ls : storageServerDir2\123_DIR

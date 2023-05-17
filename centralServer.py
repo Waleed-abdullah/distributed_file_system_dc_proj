@@ -99,8 +99,7 @@ class FileServer:
                     s.connect((storageNodeIp, storageNodePort))
                     s.sendall(message.encode())
                     response = s.recv(2048).decode()
-                    print('response:', response)
-                    if needSingleServer:
+                    if needSingleServer and response:
                         break
             except:
                 response = None
