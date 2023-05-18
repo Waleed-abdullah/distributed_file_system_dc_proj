@@ -9,7 +9,7 @@ class FileServer:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.bind(('127.0.0.1', port))
         self.socket.listen(5)
-        self.log = "centralServerLog.txt"
+        self.log = f"centralServerLog-{port}.txt"
         self.storageNodes = [[('127.0.0.1', 8000)], [('127.0.0.1', 8001)]]
         self.synchronizedClockOffset = None
         print(f"Server listening on port {port}")
