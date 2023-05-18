@@ -35,7 +35,6 @@ def berkeley(nodeClocks):
 def compute_formatted_time(offset):
     currentTime = offset + time.time()
     timeStruct = time.localtime(currentTime)
-    milliseconds = str(currentTime).split('.')[1][:3]
     formattedTime = time.strftime("%Y-%m-%d %H:%M:%S", timeStruct)
-    preciseTime = f"{formattedTime}.{milliseconds}"
+    preciseTime = f"{formattedTime}.0"
     return preciseTime

@@ -13,7 +13,7 @@ class StorageServer:
         self.host = host
         self.port = port
         self.synchronizedClockOffset = None
-        self.log = "storageServerLog.txt"
+        self.log = f"storageServerLog-{port}.txt"
         self.server_socket = socket(AF_INET, SOCK_STREAM)
         self.server_socket.bind((self.host, self.port))
 
